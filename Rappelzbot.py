@@ -8,6 +8,7 @@ import time
 from dotenv import load_dotenv
 import pyodbc
 import asyncio
+import random
 giveawaylist = []
 
 connah = None # will later represent the connection to the Auth DB
@@ -16,6 +17,7 @@ connectionstring = ('Driver={SQL Server};'
                     'Server=localhost;'
                     'DataBase=Telecaster;'
                     'Trusted_Connection=yes;')
+
 connectionstringah = ('Driver={SQL Server};'
                     'Server=localhost;'
                     'DataBase=Auth;'
@@ -105,11 +107,29 @@ def discordidtoname(msg):
                 return False
         username = username.pop()
         return username
+
+def discordidtonamegiveaway(id):
+        cursor = connah.cursor()
+        user = id
+        cursor.execute(f"SELECT account,DiscordID FROM [Account] WHERE DiscordID ={user}")
+        result = cursor.fetchall()
+        username = []
+        count = 0
+        for row in result:
+            username.append(row.account)
+        username = username.pop()
+        return username
 #Function to resolves the users account based on their discord ID ( Needs the ID to already be added to the AUTH db table design in varchar ( it's used as an int ) )
 
 def threadingwait(waittime,msg,giveawaylist):
     time.sleep(waittime)
     print(giveawaylist)
+    amount = len(giveawaylist)
+    randomnumber = random.randint(0,amount)
+    randomnumber -= 1
+    winner = giveawaylist[randomnumber]
+    winner = discordidtonamegiveaway(winner)
+    print(winner)
     return
 #Timer for giveaway after deletion, Since it's a multithread the sleep will not stop the rest of the code
 
@@ -152,6 +172,8 @@ async def giveaway(msg,itemname: str,timer: int,id: int):
 @bot.event
 async def on_reaction_add(reaction,user):
     global giveawaymessage,giveawaylist
+    if user.id == 921459290273898507:
+        return
     if reaction.message == giveawaymessage:
         for check in giveawaylist:
             if check == user.id:
