@@ -122,8 +122,8 @@ def discordidtonamegiveaway(id):
         return username
 #Function to resolves the users account based on their discord ID ( Needs the ID to already be added to the AUTH db table design in varchar ( it's used as an int ) )
 
-def threadingwait(waittime,msg,giveawaylist):
-    time.sleep(waittime)
+async def taskwait(waittime,msg,giveawaylist,id):
+    await asyncio.sleep(waittime)
     print(giveawaylist)
     amount = len(giveawaylist)
     randomnumber = random.randint(0,amount)
@@ -161,9 +161,12 @@ async def giveaway(msg,itemname: str,timer: int,id: int):
         print(giveawaymessage)
         
         #the await is ignored for the first one, When it's ran again after the timer it will run the code below it aswell.
+        taskdelmsg = asyncio.create_task(taskwait(timer,msg,giveawaylist,id))        
         await giveawaymessage.delete(delay=timer)
-        thread = threading.Thread(target=threadingwait,args=[timer,msg,giveawaylist])
-        thread.start()
+        #thread = threading.Thread(target=threadingwait,args=[timer,msg,giveawaylist,id])
+        #thread.start()
+        await taskdelmsg
+
 
     
 
