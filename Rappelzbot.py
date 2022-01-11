@@ -14,6 +14,7 @@ giveawaylist = []
 
 connah = None # will later represent the connection to the Auth DB
 conn = None # will later represent the connection to the Telecaster DB
+connbil = None # Will later represent the connection to the Billing DB (Mainly used for paid item ( Cs box ) )
 connectionstring = ('Driver={SQL Server};'
                     'Server=localhost;'
                     'DataBase=Telecaster;'
@@ -22,6 +23,10 @@ connectionstring = ('Driver={SQL Server};'
 connectionstringah = ('Driver={SQL Server};'
                     'Server=localhost;'
                     'DataBase=Auth;'
+                    'Trusted_Connection=yes;')
+connectionstringbil = ('Driver={SQL Server};'
+                    'Server=localhost;'
+                    'DataBase=Telecaster;'
                     'Trusted_Connection=yes;')
 #^ The connection strings ^
 
@@ -41,6 +46,7 @@ async def on_ready():
     try:
         conn = pyodbc.connect(connectionstring)
         connah = pyodbc.connect(connectionstringah)
+        connbil = pyodbc.connect(connectionstringbil)
     except ConnectionRefusedError:
         print('Connection refused by SQL server\nThis bot only works with Myssql make sure you\'re not using Mysql')
         quit()
@@ -100,6 +106,7 @@ def discordidtoname(msg):
         result = cursor.fetchall()
         username = []
         count = 0
+
         for row in result:
             username.append(row.account)
             count += 1
@@ -109,28 +116,33 @@ def discordidtoname(msg):
         username = username.pop()
         return username
 
-def discordidtonamegiveaway(id):
+def discordidtonamegiveaway(id,msg):
         cursor = connah.cursor()
         user = id
-        cursor.execute(f"SELECT account,DiscordID FROM [Account] WHERE DiscordID ={user}")
+        cursor.execute(f"SELECT account_id,DiscordID FROM [Account] WHERE DiscordID ={user}")
         result = cursor.fetchall()
-        username = []
-        count = 0
-        for row in result:
-            username.append(row.account)
-        username = username.pop()
-        return username
+        accountid = []
+        check = len(result.row.account_id)
+        if check > 1:
+            msg.channel.send('You can only have 1 discord account linked per game account.')
+            return
+        accountid.append(result.account_id)
+        accountid = accountid.pop()
+        return accountid
 #Function to resolves the users account based on their discord ID ( Needs the ID to already be added to the AUTH db table design in varchar ( it's used as an int ) )
 
-async def taskwait(waittime,msg,giveawaylist,id):
+async def taskwinner(waittime,msg,giveawaylist,id):
+    global connbil
+    connbil.cursor()
     await asyncio.sleep(waittime)
     print(giveawaylist)
     amount = len(giveawaylist)
     randomnumber = random.randint(0,amount)
     randomnumber -= 1
     winner = giveawaylist[randomnumber]
-    winner = discordidtonamegiveaway(winner)
+    winner = discordidtonamegiveaway(winner,msg)
     print(winner)
+    # After learning billing insert query here 
     return
 #Timer for giveaway after deletion, Since it's a multithread the sleep will not stop the rest of the code
 
@@ -161,16 +173,26 @@ async def giveaway(msg,itemname: str,timer: int,id: int):
         print(giveawaymessage)
         
         #the await is ignored for the first one, When it's ran again after the timer it will run the code below it aswell.
-        taskdelmsg = asyncio.create_task(taskwait(timer,msg,giveawaylist,id))        
+        taskdelmsg = asyncio.create_task(taskwinner(timer,msg,giveawaylist,id))        
         await giveawaymessage.delete(delay=timer)
         #thread = threading.Thread(target=threadingwait,args=[timer,msg,giveawaylist,id])
         #thread.start()
         await taskdelmsg
 
-
+@bot.command()
+async def register(msg):
     
+    await msg.channel.send(f"Please check your DM, {msg.author.name}")
+    message = (f"Hello, {msg.author.name}.\nusing the DM's you will be able to savely link your discord to your Ingame account, Be wary though you can only have 1 ingame account connected to 1 discord account.\n By typing !link you will be able to link your discord account to Rappelz however you need to login first\nwhich can be done by typing !link in the following manner: !link loginname password")
+    await msg.author.send(message)
 
-
+@bot.command()
+@commands.dm_only()
+async def link(msg,user:str,login:str):
+    global connah
+    md5key = str(2020)
+    cursor = connah.cursor()
+    print(user,login)
 
 @bot.event
 async def on_reaction_add(reaction,user):
