@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import pyodbc
 import asyncio
 import random
+import hashlib
 giveawaylist = []
 
 connah = None # will later represent the connection to the Auth DB
@@ -163,7 +164,6 @@ async def giveaway(msg,itemname: str,timer: int,id: int):
         await giveawaymessage.delete(delay=timer)
         thread = threading.Thread(target=threadingwait,args=[timer,msg,giveawaylist])
         thread.start()
-        print('test')
 
     
 
