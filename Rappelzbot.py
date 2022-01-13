@@ -24,6 +24,7 @@ connectionstringah = ('Driver={SQL Server};'
                     'Server=localhost;'
                     'DataBase=Auth;'
                     'Trusted_Connection=yes;')
+
 connectionstringbil = ('Driver={SQL Server};'
                     'Server=localhost;'
                     'DataBase=Telecaster;'
@@ -41,7 +42,7 @@ bot = commands.Bot(command_prefix="!")
 print("Attempting to connect to the SQL server...")
 @bot.event
 async def on_ready():
-    global conn,connah,connectionstring
+    global conn,connah,connbil,connectionstring
 
     try:
         conn = pyodbc.connect(connectionstring)
@@ -116,31 +117,34 @@ def discordidtoname(msg):
         username = username.pop()
         return username
 
-def discordidtonamegiveaway(id,msg):
+def discordidtonamegiveaway(msg,id):
         cursor = connah.cursor()
         user = id
         cursor.execute(f"SELECT account_id,DiscordID FROM [Account] WHERE DiscordID ={user}")
         result = cursor.fetchall()
         accountid = []
-        check = len(result.row.account_id)
-        if check > 1:
-            msg.channel.send('You can only have 1 discord account linked per game account.')
-            return
-        accountid.append(result.account_id)
+        count = 0 
+        for row in result:
+            count +=1
+            if count >= 2:
+                return
+            accountid.append(row.account_id)
+
+
         accountid = accountid.pop()
         return accountid
 #Function to resolves the users account based on their discord ID ( Needs the ID to already be added to the AUTH db table design in varchar ( it's used as an int ) )
 
 async def taskwinner(waittime,msg,giveawaylist,id):
     global connbil
-    connbil.cursor()
+    connbil = connbil.cursor()
     await asyncio.sleep(waittime)
     print(giveawaylist)
     amount = len(giveawaylist)
     randomnumber = random.randint(0,amount)
     randomnumber -= 1
     winner = giveawaylist[randomnumber]
-    winner = discordidtonamegiveaway(winner,msg)
+    winner = discordidtonamegiveaway(msg,winner)
     print(winner)
     # After learning billing insert query here 
     return
@@ -190,9 +194,24 @@ async def register(msg):
 @commands.dm_only()
 async def link(msg,user:str,login:str):
     global connah
-    md5key = str(2020)
     cursor = connah.cursor()
-    print(user,login)
+    user = "'"+user+"'"
+    md5key = str(2020)
+    loginstr = (md5key+login)
+    result = hashlib.md5(loginstr.encode())
+    hashedlogin = (result.hexdigest())
+    hashedlogin = "'"+hashedlogin+"'"
+    print(f"{user},{hashedlogin} has been called to verify by user {msg.author} their discord id is: {msg.author.id}")
+
+    cursor.execute(f"SELECT account , password , DiscordID, account_id FROM [Account] WHERE (account = {user} AND password = {hashedlogin})")
+
+    logininfo = cursor.fetchall()
+
+    for row in logininfo:
+
+        print("Account name: "+(row.account) +" Password: "+ (row.password)+" DiscordID: " +(row.DiscordID)+" accountid: "+(row.account_id) )
+
+
 
 @bot.event
 async def on_reaction_add(reaction,user):
