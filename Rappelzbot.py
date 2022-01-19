@@ -11,6 +11,7 @@ import pyodbc
 import asyncio
 import random
 import hashlib
+
 giveawaylist = []
 md5key = str(2020)
 connah = None # will later represent the connection to the Auth DB
@@ -143,6 +144,46 @@ def md5hasher(md5key:Str,login:Str):
     return hashedlogin
 #Md5hash for passwords in Rappelz, It takes in a md5key + password and returns both of those hashed
 
+def timeformat(timer):
+    days = 0
+    hours = 0
+    minutes = 0
+    seconds = 0
+    timelist = []
+    while timer > 0:
+        check = False
+        if timer >= 86400 and check == False: #Day
+            timer -= 86400
+            days += 1
+            check == True
+            #timer //= 86400
+            #timestring = int(timer)
+            #timestring = f"{str(timer)} Day(s)"
+
+
+        elif timer >= 3600 and check == False: #Hour
+            timer -= 3600
+            hours += 1
+            check == True
+            #timer //= 3600
+            #timestring = int(timer)
+            #timestring = f"{str(timer)} Hour(s)"
+        
+        elif timer >= 60 and check == False:
+            timer -= 60
+            minutes += 1
+            check == True
+        
+        elif timer >= 1 and check == False:
+            timer -= 1
+            seconds += 1
+            check == True
+    days, hours,minutes, seconds = (f"{days} Days"), (f"{hours} Hours"),(f"{minutes} Minutes"),(f"{seconds} Seconds")
+    print(f'Works {days} {hours} {minutes} {seconds}')
+    timelist = [days,hours,minutes,seconds]
+    return timelist
+
+
 async def taskwinner(waittime,msg,giveawaylist,id):
     global connbil
     connbil = connbil.cursor()
@@ -177,9 +218,11 @@ async def test(msg):
 #function discordidtoname
 
 @bot.command()
-async def giveaway(msg,itemname: str,timer: int,id: int, timetype: str):
+async def giveaway(msg,itemname: str,timer: int,id: int):
         global giveawaymessage,giveawaylist
-        giveawaymessage = await msg.channel.send((f'There\'s a give away where {itemname} will be given away in {timer} seconds'))
+        timestring = timeformat(timer)
+        print(timestring)
+        giveawaymessage = await msg.channel.send((f'There\'s a give away where {itemname} will be given away in {timestring}'))
         emoji = '\N{THUMBS UP SIGN}'
         await giveawaymessage.add_reaction(emoji)
         print(giveawaymessage)
@@ -220,7 +263,6 @@ async def link(msg,user:str,login:str):
 
     if account_id == None:
         embed=discord.Embed(title="Login unsuccessful.", description="Either the username or password is incorrect", color=0xff0000)
-        embed.set_author(name="Bot provided by Lyza")
         embed.set_thumbnail(url="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSlNSlb7_KRQmYZ_vJu5u6sUfpqNwnGBxWuSB-au-XoeHk8NFkMad5ITes8RNEyRjsoJXw&usqp=CAU")
         embed.set_footer(text="Bot provided by Lyza")
         await msg.channel.send(embed=embed)
